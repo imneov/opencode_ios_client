@@ -17,6 +17,23 @@ struct OpenCodeClientTests {
         #expect(APIClient.defaultServer == "127.0.0.1:4096")
     }
 
+    @Test func correctMalformedServerURL() {
+        // Malformed "host://host:port" from iOS .textContentType(.URL) autocorrect
+        #expect(AppState.correctMalformedServerURL("quantum.tail63c3c5.ts.net://quantum.tail63c3c5.ts.net:4096") == "quantum.tail63c3c5.ts.net:4096")
+        #expect(AppState.correctMalformedServerURL("host.example.com://host.example.com:8080") == "host.example.com:8080")
+        // Legitimate URLs unchanged
+        #expect(AppState.correctMalformedServerURL("http://quantum.tail63c3c5.ts.net:4096") == nil)
+        #expect(AppState.correctMalformedServerURL("quantum.tail63c3c5.ts.net:4096") == nil)
+        #expect(AppState.correctMalformedServerURL("127.0.0.1:4096") == nil)
+    }
+
+    @Test func ensureServerURLHasScheme() {
+        #expect(AppState.ensureServerURLHasScheme("quantum.tail63c3c5.ts.net:4096") == "http://quantum.tail63c3c5.ts.net:4096")
+        #expect(AppState.ensureServerURLHasScheme("127.0.0.1:4096") == "http://127.0.0.1:4096")
+        #expect(AppState.ensureServerURLHasScheme("http://quantum.tail63c3c5.ts.net:4096") == nil)
+        #expect(AppState.ensureServerURLHasScheme("https://example.com:443") == nil)
+    }
+
     @Test @MainActor func migrateLegacyDefaultServerAddress() {
         let key = "serverURL"
         let previous = UserDefaults.standard.string(forKey: key)

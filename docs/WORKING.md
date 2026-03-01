@@ -77,6 +77,7 @@
 - [x] **Todo 渲染兼容性修复（OpenCode 升级）**：兼容 `TodoItem` 新旧字段（`status/priority/id` 与 legacy `completed`），并修复 tool state `metadata.todos`/`output(JSON)` 解析；`metadata.input` 非字符串时不再导致 todo 卡片空白
 - [x] **SSH runtime crash 防护（NIO channel state）**：修复 `SSHTunnelManager` 中跨线程调用 channel/context close 的并发问题（统一切回 NIO eventLoop 执行），避免 `Sent channel window adjust on channel in invalid state` 触发 fatal
 - [x] **SSH Public Key 交互补强（二次）**：`View Public Key` 改为始终走 `generateOrGetPublicKey()`（不再优先读可能为空的缓存值），并将 `Copy Public Key` + `View Public Key` 合并为同一行按钮，减少 Settings 区域占用
+- [x] **Tailscale / Server Address UX（2026-03-01）**：ATS 例外为 `ts.net` 添加 `NSIncludesSubdomains`；`correctMalformedServerURL` 修正 `host://host:port` 畸形格式；`ensureServerURLHasScheme` 无 http/https 时自动补 `http://`；修正时机改为 lose focus（`@FocusState` + `onChange`），避免每字符改写；Server Address 键盘 `submitLabel(.done)` 显示 Done
 
 ## 已完成
 
@@ -211,7 +212,7 @@
 
 10. **View Public Key 部分场景仍空白**：在 SSH enabled 但连接失败时，旧逻辑会先读本地缓存公钥，存在命中空字符串导致 sheet 为空的风险。修复：打开 sheet 时统一通过 `generateOrGetPublicKey()` 获取并做 trim + empty guard，异常时走错误弹窗。
 
-11. **Tailscale MagicDNS 需 ATS 例外**：公司策略要求所有 host 使用 ATS/HTTPS，但 Tailscale MagicDNS（`*.ts.net`）解析的服务器通常跑 HTTP。修复：在 Info.plist 的 `NSAppTransportSecurity` 下添加 `NSExceptionDomains` → `ts.net` → `NSExceptionAllowsInsecureHTTPLoads: true`，仅对 Tailscale 域名豁免 HTTPS 要求；其他域名仍受 ATS 约束。
+11. **Tailscale MagicDNS 需 ATS 例外**：公司策略要求所有 host 使用 ATS/HTTPS，但 Tailscale MagicDNS（`*.ts.net`）解析的服务器通常跑 HTTP。修复：在 Info.plist 的 `NSAppTransportSecurity` 下添加 `NSExceptionDomains` → `ts.net` → `NSExceptionAllowsInsecureHTTPLoads: true` + **`NSIncludesSubdomains: true`**（关键：无此键则 `ts.net` 不匹配子域名如 `quantum.tail63c3c5.ts.net`），仅对 Tailscale 域名豁免 HTTPS 要求；其他域名仍受 ATS 约束。**Server Address 畸形格式**：iOS `.textContentType(.URL)` 或粘贴可能产生 `host://host:port` 格式，导致请求连到 80 端口、ECONNREFUSED。修复：`correctMalformedServerURL` 修正畸形；`ensureServerURLHasScheme` 无 http/https 时补 `http://`；修正时机为 **lose focus**（`@FocusState` + `onChange`），避免每字符改写；键盘 `submitLabel(.done)` 显示 Done。
 
 ## 决策记录
 

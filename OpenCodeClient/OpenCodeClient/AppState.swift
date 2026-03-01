@@ -28,9 +28,32 @@ final class AppState {
         let warning: String?
     }
 
+    /// Ensures server URL has http:// or https:// prefix. Returns normalized string if missing scheme, nil otherwise.
+    /// Call after correctMalformedServerURL. Ensures the stored/displayed value is explicit and avoids URL parsing quirks.
+    nonisolated static func ensureServerURLHasScheme(_ raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        guard !trimmed.hasPrefix("http://"), !trimmed.hasPrefix("https://") else { return nil }
+        return "http://\(trimmed)"
+    }
+
+    /// Fixes malformed "host://host:port" (e.g. from iOS .textContentType(.URL) autocorrect or paste).
+    /// Returns corrected string if malformed, nil otherwise.
+    nonisolated static func correctMalformedServerURL(_ raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let idx = trimmed.range(of: "://") else { return nil }
+        let beforeScheme = String(trimmed[..<idx.lowerBound])
+        let afterScheme = String(trimmed[idx.upperBound...])
+        guard afterScheme.hasPrefix(beforeScheme), beforeScheme != "http", beforeScheme != "https" else { return nil }
+        return beforeScheme + afterScheme.dropFirst(beforeScheme.count)
+    }
+
     /// LAN allows HTTP; WAN requires HTTPS.
     nonisolated static func serverURLInfo(_ raw: String) -> ServerURLInfo {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        var trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let corrected = Self.correctMalformedServerURL(trimmed) {
+            trimmed = corrected
+        }
         guard !trimmed.isEmpty else {
             return .init(raw: raw, normalized: nil, scheme: nil, host: nil, isLocal: true, isTailscale: false, isAllowed: false, warning: L10n.t(.errorServerAddressEmpty))
         }

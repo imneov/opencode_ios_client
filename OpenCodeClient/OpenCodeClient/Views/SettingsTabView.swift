@@ -7,7 +7,8 @@ import SwiftUI
 
 struct SettingsTabView: View {
     @Bindable var state: AppState
-    
+    @FocusState private var isServerAddressFocused: Bool
+
     @State private var showPublicKeySheet = false
     @State private var showRotateKeyAlert = false
     @State private var copiedPublicKey = false
@@ -23,8 +24,14 @@ struct SettingsTabView: View {
                     let info = AppState.serverURLInfo(state.serverURL)
 
                     TextField(L10n.t(.settingsAddress), text: $state.serverURL)
+                        .focused($isServerAddressFocused)
+                        .submitLabel(.done)
+                        .onAppear { normalizeServerURLInPlace(state: state) }
                         .textContentType(.URL)
                         .autocapitalization(.none)
+                        .onChange(of: isServerAddressFocused) { _, newValue in
+                            if !newValue { normalizeServerURLInPlace(state: state) }
+                        }
 
                     TextField(L10n.t(.settingsUsername), text: $state.username)
                         .textContentType(.username)
@@ -403,6 +410,21 @@ struct SettingsTabView: View {
 
     private func schemeHelpText(info: AppState.ServerURLInfo) -> String {
         L10n.helpForURLScheme(isLocal: info.isLocal, isTailscale: info.isTailscale)
+    }
+
+    /// Normalizes server URL in place: fix malformed host://host:port, then ensure http:// prefix.
+    /// User sees the explicit URL in the text field, avoiding iOS URL parsing quirks.
+    private func normalizeServerURLInPlace(state: AppState) {
+        var current = state.serverURL
+        if let corrected = AppState.correctMalformedServerURL(current) {
+            current = corrected
+        }
+        if let withScheme = AppState.ensureServerURLHasScheme(current) {
+            current = withScheme
+        }
+        if current != state.serverURL {
+            state.serverURL = current
+        }
     }
 }
 
