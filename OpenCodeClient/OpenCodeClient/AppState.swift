@@ -489,6 +489,7 @@ final class AppState {
     static let customProjectSentinel = "__custom__"
 
     var pendingPermissions: [PendingPermission] = []
+    var pendingQuestions: [QuestionRequest] = []
 
     var themePreference: String = "auto"  // "auto" | "light" | "dark"
 
@@ -784,6 +785,9 @@ final class AppState {
             guard self.sessionLoadingID == loadingID else { return }
 
             await self.refreshPendingPermissions()
+            guard self.sessionLoadingID == loadingID else { return }
+
+            await self.refreshPendingQuestions()
             guard self.sessionLoadingID == loadingID else { return }
             
             self.inferAndStoreModelForCurrentSessionIfMissing()
@@ -1206,6 +1210,7 @@ final class AppState {
         let start = Date()
         await loadMessages()
         await refreshPendingPermissions()
+        await refreshPendingQuestions()
         await syncSessionStatusesFromPoll()
         let elapsedMs = Int(Date().timeIntervalSince(start) * 1000)
         Self.logger.debug("bootstrapSync reason=\(reason, privacy: .public) elapsedMs=\(elapsedMs, privacy: .public) messages=\(self.messages.count, privacy: .public) permissions=\(self.pendingPermissions.count, privacy: .public)")
@@ -1265,6 +1270,31 @@ final class AppState {
         } catch {
             // Keep the current list on errors.
         }
+    }
+
+    func respondQuestion(_ request: QuestionRequest, answers: [[String]]) async {
+        do {
+            try await apiClient.replyQuestion(requestID: request.id, answers: answers)
+            pendingQuestions.removeAll { $0.id == request.id }
+        } catch {
+            connectionError = error.localizedDescription
+        }
+    }
+
+    func rejectQuestion(_ request: QuestionRequest) async {
+        do {
+            try await apiClient.rejectQuestion(requestID: request.id)
+            pendingQuestions.removeAll { $0.id == request.id }
+        } catch {
+            connectionError = error.localizedDescription
+        }
+    }
+
+    func refreshPendingQuestions() async {
+        guard isConnected else { return }
+        do {
+            pendingQuestions = try await apiClient.pendingQuestions()
+        } catch {}
     }
 
     func connectSSE() {
@@ -1444,6 +1474,13 @@ final class AppState {
             }
         case "permission.replied":
             PermissionController.applyRepliedEvent(properties: props, to: &pendingPermissions)
+        case "question.asked":
+            if let question = QuestionController.parseAskedEvent(properties: props),
+               !pendingQuestions.contains(where: { $0.id == question.id }) {
+                pendingQuestions.append(question)
+            }
+        case "question.replied", "question.rejected":
+            QuestionController.applyResolvedEvent(properties: props, to: &pendingQuestions)
         case "todo.updated":
             if let sessionID = props["sessionID"]?.value as? String,
                let todosObj = props["todos"]?.value,

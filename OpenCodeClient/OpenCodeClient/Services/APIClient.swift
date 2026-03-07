@@ -317,6 +317,29 @@ actor APIClient {
         }
     }
 
+    func pendingQuestions() async throws -> [QuestionRequest] {
+        let (data, _) = try await makeRequest(path: "/question")
+        return try JSONDecoder().decode([QuestionRequest].self, from: data)
+    }
+
+    func replyQuestion(requestID: String, answers: [[String]]) async throws {
+        struct Body: Encodable {
+            let answers: [[String]]
+        }
+        let data = try JSONEncoder().encode(Body(answers: answers))
+        let (_, response) = try await makeRequest(path: "/question/\(requestID)/reply", method: "POST", body: data)
+        if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
+            throw APIError.httpError(statusCode: http.statusCode, data: Data())
+        }
+    }
+
+    func rejectQuestion(requestID: String) async throws {
+        let (_, response) = try await makeRequest(path: "/question/\(requestID)/reject", method: "POST")
+        if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
+            throw APIError.httpError(statusCode: http.statusCode, data: Data())
+        }
+    }
+
     func providers() async throws -> ProvidersResponse {
         let (data, _) = try await makeRequest(path: "/config/providers")
         return try JSONDecoder().decode(ProvidersResponse.self, from: data)
