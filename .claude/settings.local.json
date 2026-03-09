@@ -2,7 +2,15 @@
   "permissions": {
     "allow": [
       "Bash(mkdir -p .github/workflows)",
-      "Bash(git add .)"
+      "Bash(git add .)",
+      "Bash(git push origin master)",
+      "Bash(git remote set-url origin git@github.com:imneov/opencode_ios_client.git)",
+      "Bash(curl -s https://api.github.com/repos/imneov/opencode_ios_client)",
+      "WebFetch(domain:github.com)",
+      "Bash(gh run list --repo imneov/opencode_ios_client --limit 5)",
+      "Bash(gh run view 22837388633 --repo imneov/opencode_ios_client)",
+      "Bash(gh run view 22837388633 --log-failed --repo imneov/opencode_ios_client)",
+      "Bash(git commit -m \"fix: 添加项目文件诊断步骤\")"
     ],
     "deny": [],
     "ask": []

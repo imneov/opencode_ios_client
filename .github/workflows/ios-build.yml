@@ -24,6 +24,21 @@ jobs:
     - name: Show Xcode version
       run: xcodebuild -version
 
+    - name: Check Project Structure
+      run: |
+        echo "=== Project Directory ==="
+        ls -la OpenCodeClient/
+        echo "=== Xcode Project Contents ==="
+        ls -la OpenCodeClient/OpenCodeClient.xcodeproj/
+        echo "=== Project File Info ==="
+        file OpenCodeClient/OpenCodeClient.xcodeproj/project.pbxproj
+        head -10 OpenCodeClient/OpenCodeClient.xcodeproj/project.pbxproj
+
+    - name: List Available Schemes
+      run: |
+        cd OpenCodeClient
+        xcodebuild -list -project OpenCodeClient.xcodeproj
+
     - name: Build iOS App (No Signing)
       run: |
         cd OpenCodeClient
