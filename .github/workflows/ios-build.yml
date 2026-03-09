@@ -1,0 +1,57 @@
+name: iOS Build (No Code Signing)
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build:
+    name: Build iOS App
+    runs-on: macOS-14
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: "15.0"
+
+    - name: Show Xcode version
+      run: xcodebuild -version
+
+    - name: Build iOS App (No Signing)
+      run: |
+        cd OpenCodeClient
+        xcodebuild clean build \
+          -project OpenCodeClient.xcodeproj \
+          -scheme OpenCodeClient \
+          -destination 'generic/platform=iOS' \
+          -configuration Debug \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGN_IDENTITY="" \
+          PROVISIONING_PROFILE=""
+
+    - name: Create Build Info
+      run: |
+        echo "Build completed successfully!" > build_info.txt
+        echo "Project: OpenCodeClient" >> build_info.txt
+        echo "Configuration: Debug (No Code Signing)" >> build_info.txt
+        echo "Build Date: $(date)" >> build_info.txt
+        echo "Commit: ${{ github.sha }}" >> build_info.txt
+        echo "" >> build_info.txt
+        echo "Note: This is a debug build without code signing." >> build_info.txt
+        echo "To install on device, you need an Apple Developer account." >> build_info.txt
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: OpenCodeClient-Build-${{ github.sha }}
+        path: |
+          build_info.txt
+          OpenCodeClient/build/
+        retention-days: 7
