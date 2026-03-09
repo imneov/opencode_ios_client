@@ -10,7 +10,10 @@
       "Bash(gh run list --repo imneov/opencode_ios_client --limit 5)",
       "Bash(gh run view 22837388633 --repo imneov/opencode_ios_client)",
       "Bash(gh run view 22837388633 --log-failed --repo imneov/opencode_ios_client)",
-      "Bash(git commit -m \"fix: 添加项目文件诊断步骤\")"
+      "Bash(git commit -m \"fix: 添加项目文件诊断步骤\")",
+      "Bash(gh run list --repo imneov/opencode_ios_client --limit 1)",
+      "Bash(gh run view 22837611477 --log-failed --repo imneov/opencode_ios_client)",
+      "Bash(git commit -m \"fix: 升级到Xcode 15.4以支持新的项目格式\")"
     ],
     "deny": [],
     "ask": []
